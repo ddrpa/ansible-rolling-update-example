@@ -1,0 +1,56 @@
+---
+- name: Rolling update app server with zero-downtime
+  hosts: appservers
+  serial: 1
+
+  pre_tasks:
+    - name: Read all app server's IP and current node into facts
+      ansible.builtin.set_fact:
+        all_app_server_ip_list: '{{ ip_in_load_balance | dict2items | map(attribute="value") | list }}'
+        current_node_ip: '{{ ip_in_load_balance[inventory_hostname] }}'
+
+    - name: Load all available app server's IP into facts
+      ansible.builtin.set_fact:
+        online_app_server_ip_list: '{{ all_app_server_ip_list | difference([current_node_ip]) }}'
+
+    - name: Reconfigure load balance with differenced app server's IPs
+      delegate_to: '{{ groups["loadbalance"][0] }}'
+      ansible.builtin.template:
+        src: hello.conf.j2
+        dest: /etc/nginx/conf.d/hello.conf
+        mode: '0644'
+      vars:
+        available_hosts: '{{ online_app_server_ip_list }}'
+
+    - name: Reload load balance service
+      delegate_to: '{{ groups["loadbalance"][0] }}'
+      ansible.builtin.command:
+        cmd: 'nginx -s reload'
+
+    - name: Pause and check load balance configuration manually
+      ansible.builtin.pause:
+        prompt: "Please check load balance configuration manually. Press Enter to continue"
+      when: manually_confirm_required is defined and manually_confirm_required is true
+
+  roles:
+    - app
+
+  post_tasks:
+    - name: Reconfigure load balance with all app server's IPs
+      ansible.builtin.template:
+        src: hello.conf.j2
+        dest: /etc/nginx/conf.d/hello.conf
+        mode: '0644'
+      delegate_to: '{{ groups["loadbalance"][0] }}'
+      vars:
+        available_hosts: '{{ all_app_server_ip_list }}'
+
+    - name: Reload load balance service
+      ansible.builtin.command:
+        cmd: 'nginx -s reload'
+      delegate_to: '{{ groups["loadbalance"][0] }}'
+
+    - name: Pause and check load balance configuration manually
+      ansible.builtin.pause:
+        prompt: "Please check load balance configuration manually. Press Enter to continue"
+      when: manually_confirm_required is defined and manually_confirm_required is true

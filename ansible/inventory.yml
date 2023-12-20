@@ -1,0 +1,16 @@
+---
+appservers:
+  hosts:
+    xiaowang:
+      ansible_user: root
+    alma:
+      ansible_user: yufan
+    niexiawei:
+      ansible_host: 192.168.200.46
+      ansible_user: root
+
+loadbalance:
+  hosts:
+    loadbalance01:
+      ansible_host: alma
+      ansible_user: root

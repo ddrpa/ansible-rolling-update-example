@@ -1,0 +1,9 @@
+ip_in_load_balance:
+  xiaowang: '192.168.200.47'
+  alma: '192.168.200.40'
+  niexiawei: '192.168.200.46'
+
+local_artifact: '/Users/yufan/DevSpace/hello-app/target/app.jar'
+app_name: hello
+app_work_directory: playground
+app_port: 3000

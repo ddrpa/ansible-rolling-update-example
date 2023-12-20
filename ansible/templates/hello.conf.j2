@@ -1,0 +1,17 @@
+upstream hello {
+{% for host in available_hosts %}
+    server {{ host }}:3000 max_fails=3 fail_timeout=13s;
+{% endfor %}
+}
+
+server {
+    listen       8080;
+    server_name  _;
+    error_log /var/log/nginx/hello.error.log  error;
+
+    location / {
+        proxy_pass http://hello;
+        proxy_next_upstream_timeout 200ms;
+        proxy_next_upstream error timeout non_idempotent;
+    }
+}
